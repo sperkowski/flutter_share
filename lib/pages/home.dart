@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttershare/models/user.dart';
 import 'package:fluttershare/pages/activity_feed.dart';
+import 'package:fluttershare/pages/create_account.dart';
 import 'package:fluttershare/pages/profile.dart';
 import 'package:fluttershare/pages/search.dart';
 import 'package:fluttershare/pages/timeline.dart';
@@ -8,6 +12,14 @@ import 'package:fluttershare/pages/upload.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 final GoogleSignIn googleSignIn = GoogleSignIn();
+//final StorageReference storageRef = FirebaseStorage.instance.ref();
+final storageRef = FirebaseFirestore.instance;
+//final userRef = Firestore.instance.collection('users');
+final userRef = FirebaseFirestore.instance.collection('users');
+//final postsRef = Firestore.instance.collection('posts');
+final postsRef = FirebaseFirestore.instance.collection('posts');
+final DateTime timestamp = DateTime.now();
+User currentUser;
 
 class Home extends StatefulWidget {
   @override
@@ -48,6 +60,7 @@ class _HomeState extends State<Home> {
 
   handleSignIn(GoogleSignInAccount account) {
     if (account != null) {
+      createUserInFirestore();
       print('User signed in!: $account');
       setState(() {
         isAuth = true;
@@ -59,8 +72,40 @@ class _HomeState extends State<Home> {
     }
   }
 
+  createUserInFirestore() async {
+    // 1) check if user exists in users collection in db (according to their id)
+    final GoogleSignInAccount user = googleSignIn.currentUser;
+    //DocumentSnapshot doc = await userRef.document(user.id).get();
+    DocumentSnapshot doc = await userRef.doc(user.id).get();
+
+    if (!doc.exists) {
+      // 2) if the user doesn't exists , then we want to take them to the creae account page
+      final username = await Navigator.push(
+          context, MaterialPageRoute(builder: (context) => CreateAccount()));
+
+      // 3) get username from create account
+      //usersRef.document(user.id).setData({
+      usersRef.doc(user.id).set({
+        "id": user.id,
+        "username": username,
+        "photoUrl": user.photoUrl,
+        "email": user.email,
+        "displayName": user.displayName,
+        "bio": "",
+        "timestamp": timestamp
+      });
+
+      //doc = await userRef.document(user.id).get();
+      doc = await userRef.doc(user.id).get();
+    }
+
+    currentUser = User.fromDoucment(doc);
+    print(currentUser);
+    print(currentUser.username);
+  }
+
   @override
-  void dispose() { 
+  void dispose() {
     pageController.dispose();
     super.dispose();
   }
@@ -80,22 +125,20 @@ class _HomeState extends State<Home> {
   }
 
   onTap(int pageIndex) {
-    pageController.animateToPage(
-      pageIndex,
-      duration: Duration(milliseconds: 300),
-      curve: Curves.easeInOut
-    );
+    pageController.animateToPage(pageIndex,
+        duration: Duration(milliseconds: 300), curve: Curves.easeInOut);
   }
 
   Widget buildAuthScreen() {
     return Scaffold(
       body: PageView(
         children: [
-          Timeline(),
+          // Timeline(),
+          RaisedButton(onPressed: logout, child: Text('Logout')),
           ActivityFeed(),
-          Upload(),
+          Upload(currentUser: currentUser),
           Search(),
-          Profile(),
+          Profile(profileId: currentUser?.id),
         ],
         controller: pageController,
         onPageChanged: onPagedChanged,
@@ -106,11 +149,21 @@ class _HomeState extends State<Home> {
         onTap: onTap,
         activeColor: Theme.of(context).primaryColor,
         items: [
-          BottomNavigationBarItem(icon: Icon(Icons.whatshot),),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications_active),),
-          BottomNavigationBarItem(icon: Icon(Icons.photo_camera, size: 35.0),),
-          BottomNavigationBarItem(icon: Icon(Icons.search),),
-          BottomNavigationBarItem(icon: Icon(Icons.account_circle),),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.whatshot),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications_active),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.photo_camera, size: 35.0),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_circle),
+          ),
         ],
       ),
     );
@@ -165,7 +218,8 @@ class _HomeState extends State<Home> {
               ),
             ),
             SizedBox(height: 10.0),
-            GestureDetector(
+            /*
+             GestureDetector(
               onTap: () => print('tapped sign in with Apple'),
               child: Container(
                 width: 260.0,
@@ -178,6 +232,7 @@ class _HomeState extends State<Home> {
                 ),
               ),
             ),
+            */
           ],
         ),
       ),

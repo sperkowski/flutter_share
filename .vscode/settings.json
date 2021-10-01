@@ -1,5 +1,7 @@
 {
-    "workbench.colorTheme": "Solarized Dark",
     "workbench.preferredDarkColorTheme": "Solarized Dark",
-    "window.autoDetectColorScheme": true
+    "window.autoDetectColorScheme": true,
+    "window.zoomLevel": 1,
+    "dart.closingLabels": true,
+    "workbench.colorTheme": "Default Dark+",
 }
