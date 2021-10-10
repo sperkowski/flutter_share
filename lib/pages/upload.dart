@@ -11,6 +11,7 @@ import 'package:fluttershare/widgets/progress.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
+// import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as Im;
 import 'package:uuid/uuid.dart';
@@ -24,42 +25,50 @@ class Upload extends StatefulWidget {
   _UploadState createState() => _UploadState();
 }
 
-class _UploadState extends State<Upload> {
+class _UploadState extends State<Upload>
+    with AutomaticKeepAliveClientMixin<Upload> {
   TextEditingController locationController = TextEditingController();
   TextEditingController captionController = TextEditingController();
 
   File file;
+  final picker = ImagePicker();
   bool isUploading = false;
   String postId = Uuid().v4();
 
   handleTakePhoto() async {
-    /*
     Navigator.pop(context);
-    File file = await ImagePicker.pickImage(
-      source: ImageSource.camera,
-      maxHeight: 675,
-      maxWidth: 960,
-    );
-    
+
+    // File file = await ImagePicker.pickImage(source: ImageSource.camera);
+
+    XFile xFile = await picker.pickImage(
+        source: ImageSource.camera, maxHeight: 675, maxWidth: 960);
+
+    if (xFile != null) {
+      final path = xFile.path;
+      final bytes = await File(path).readAsBytes();
+      final Im.Image image = Im.decodeImage(bytes);
+    }
+    // File file = await ImagePicker.pickImage(
+    //   source: ImageSource.camera,
+    //   maxHeight: 675,
+    //   maxWidth: 960,
+    // );
+
     setState(() {
-      this.file = file;
+      this.file = File(xFile.path);
     });
-    */
   }
 
-  handleChooseFromGallery() async {
+  Future handleChooseFromGallery() async {
     Navigator.pop(context);
     //File file = await ImagePicker.pickImage(source: ImageSource.gallery);
 
+    final pickedFile = await picker.getImage(source: ImageSource.gallery);
     //PickedFile selectedFile = await ImagePicker().getImage(source: ImageSource.gallery);
-    final ImagePicker _picker = ImagePicker();
-    //final XFile? image = await _picker.pick
-
-    //File file = File(selectedFile.path);
-    //XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     setState(() {
-      this.file = file;
+      // this.file = file;
+      this.file = File(pickedFile.path);
     });
   }
 
@@ -133,9 +142,19 @@ class _UploadState extends State<Upload> {
     });
   }
 
+  Future<void> uploadImageToFirebaseTask(imageFile) async {
+    //Directory = appDocDir = awiat getApplicationDocumentsDirectory();
+  }
+
   Future<String> uploadImage(imageFile) async {
-    //StorageUploadTask uploadTask = storageRef.child("post_$postId.jpg").putFile(imageFile);
-    UploadTask uploadTask = storageRef.doc("post_$postId.jpg").set(imageFile);
+    // StorageUploadTask uploadTask = storageRef.child("post_$postId.jpg").putFile(imageFile);
+    // Reference firebaseStorageRef =
+    //     storageRef.doc("post_$postId.jpg").toString(
+
+    UploadTask uploadTask =
+        storageRef.ref("post_$postId.jpg").putFile(imageFile);
+
+    //var snapshot = await storageRef.doc("post_$postId.jpg").update(imageFile);
 
     //StorageTaskSnapshot storageSnap = await uploadTask.onComplete;
     TaskSnapshot storageSnap = await uploadTask;
@@ -299,12 +318,12 @@ class _UploadState extends State<Upload> {
     locationController.text = formattedAddress;
   }
 
+  bool get wantKeepAlive => true;
+
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return file == null ? buildSplashScreen() : buildUploadForm();
   }
-
-  // @override
-  // // TODO: implement wantKeepAlive
-  // bool get wantKeepAlive => throw UnimplementedError();
 }
